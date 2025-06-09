@@ -66,7 +66,7 @@ export class ReportUsecase implements IReportUsecase {
         reportUpdate.fileUrl = reportResultDTO.fileUrl;
         reportUpdate.filePath = reportResultDTO.filePath;
         reportUpdate.status = reportResultDTO.status;
-        reportUpdate.elapsedTimeMs = Math.round(reportResultDTO.elapsedTimeMs);
+        reportUpdate.elapsedTimeMs = +reportResultDTO.elapsedTimeMs.toFixed(5);
       } catch (e) {
         reportUpdate.statusReason = (e as Error)?.message;
       }

@@ -28,7 +28,7 @@ module.exports = {
         type: Sequelize.STRING,
       },
       elapsedTimeMs: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.FLOAT,
       },
       createdAt: {
         allowNull: false,
