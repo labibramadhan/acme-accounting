@@ -1,87 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import fs from 'fs';
-import path from 'path';
+import { IReportGeneratorUsecase } from '../interfaces/usecases/report-generator.usecase.interface';
+import { ReportGenerateDTO } from '../dto/report-generate.dto';
+import { ReportResultDTO } from '../dto/report-result.dto';
 import { performance } from 'perf_hooks';
+import { Injectable } from '@nestjs/common';
+import { ReportStatusEnum } from '@/db/enums/report.enum';
+import path from 'path';
+import fs from 'fs';
 
 @Injectable()
-export class ReportsService {
-  private states = {
-    accounts: 'idle',
-    yearly: 'idle',
-    fs: 'idle',
-  };
-
-  state(scope: string) {
-    return this.states[scope];
-  }
-
-  accounts() {
-    this.states.accounts = 'starting';
-    const start = performance.now();
-    const tmpDir = 'tmp';
-    const outputFile = 'out/accounts.csv';
-    const accountBalances: Record<string, number> = {};
-    fs.readdirSync(tmpDir).forEach((file) => {
-      if (file.endsWith('.csv')) {
-        const lines = fs
-          .readFileSync(path.join(tmpDir, file), 'utf-8')
-          .trim()
-          .split('\n');
-        for (const line of lines) {
-          const [, account, , debit, credit] = line.split(',');
-          if (!accountBalances[account]) {
-            accountBalances[account] = 0;
-          }
-          accountBalances[account] +=
-            parseFloat(String(debit || 0)) - parseFloat(String(credit || 0));
-        }
-      }
-    });
-    const output = ['Account,Balance'];
-    for (const [account, balance] of Object.entries(accountBalances)) {
-      output.push(`${account},${balance.toFixed(2)}`);
-    }
-    fs.writeFileSync(outputFile, output.join('\n'));
-    this.states.accounts = `finished in ${((performance.now() - start) / 1000).toFixed(2)}`;
-  }
-
-  yearly() {
-    this.states.yearly = 'starting';
-    const start = performance.now();
-    const tmpDir = 'tmp';
-    const outputFile = 'out/yearly.csv';
-    const cashByYear: Record<string, number> = {};
-    fs.readdirSync(tmpDir).forEach((file) => {
-      if (file.endsWith('.csv') && file !== 'yearly.csv') {
-        const lines = fs
-          .readFileSync(path.join(tmpDir, file), 'utf-8')
-          .trim()
-          .split('\n');
-        for (const line of lines) {
-          const [date, account, , debit, credit] = line.split(',');
-          if (account === 'Cash') {
-            const year = new Date(date).getFullYear();
-            if (!cashByYear[year]) {
-              cashByYear[year] = 0;
-            }
-            cashByYear[year] +=
-              parseFloat(String(debit || 0)) - parseFloat(String(credit || 0));
-          }
-        }
-      }
-    });
-    const output = ['Financial Year,Cash Balance'];
-    Object.keys(cashByYear)
-      .sort()
-      .forEach((year) => {
-        output.push(`${year},${cashByYear[year].toFixed(2)}`);
-      });
-    fs.writeFileSync(outputFile, output.join('\n'));
-    this.states.yearly = `finished in ${((performance.now() - start) / 1000).toFixed(2)}`;
-  }
-
-  fs() {
-    this.states.fs = 'starting';
+export class ReportFSUsecase implements IReportGeneratorUsecase {
+  async generate(
+    reportGenerateDTO: ReportGenerateDTO,
+  ): Promise<ReportResultDTO> {
     const start = performance.now();
     const tmpDir = 'tmp';
     const outputFile = 'out/fs.csv';
@@ -124,22 +54,25 @@ export class ReportsService {
         }
       }
     }
-    fs.readdirSync(tmpDir).forEach((file) => {
-      if (file.endsWith('.csv') && file !== 'fs.csv') {
-        const lines = fs
-          .readFileSync(path.join(tmpDir, file), 'utf-8')
-          .trim()
-          .split('\n');
+    await fs.promises.readdir(tmpDir).then((files) => {
+      files.forEach((file) => {
+        if (file.endsWith('.csv') && file !== 'fs.csv') {
+          const lines = fs
+            .readFileSync(path.join(tmpDir, file), 'utf-8')
+            .trim()
+            .split('\n');
 
-        for (const line of lines) {
-          const [, account, , debit, credit] = line.split(',');
+          for (const line of lines) {
+            const [, account, , debit, credit] = line.split(',');
 
-          if (balances.hasOwnProperty(account)) {
-            balances[account] +=
-              parseFloat(String(debit || 0)) - parseFloat(String(credit || 0));
+            if (Object.prototype.hasOwnProperty.call(balances, account)) {
+              balances[account] +=
+                parseFloat(String(debit || 0)) -
+                parseFloat(String(credit || 0));
+            }
           }
         }
-      }
+      });
     });
 
     const output: string[] = [];
@@ -196,6 +129,18 @@ export class ReportsService {
       `Assets = Liabilities + Equity, ${totalAssets.toFixed(2)} = ${(totalLiabilities + totalEquity).toFixed(2)}`,
     );
     fs.writeFileSync(outputFile, output.join('\n'));
-    this.states.fs = `finished in ${((performance.now() - start) / 1000).toFixed(2)}`;
+
+    const end = performance.now();
+    const duration = (end - start) / 1000;
+    return {
+      id: reportGenerateDTO.reportId,
+      name: reportGenerateDTO.name,
+      type: reportGenerateDTO.type,
+      status: ReportStatusEnum.COMPLETED,
+      elapsedTimeMs: duration,
+      fileUrl: outputFile,
+      filePath: path.resolve(outputFile),
+      statusReason: '',
+    };
   }
 }
