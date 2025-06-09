@@ -6,12 +6,12 @@ import { IReportYearlyUsecase } from '../interfaces/usecases/report-yearly.useca
 import { ReportEntity } from '@/db/entities/report.entity';
 import { v4 } from 'uuid';
 import { IReportRepository } from '../interfaces/repositories/report-repository.interface';
-import { plainToInstance } from 'class-transformer';
 import { ReportGenerateDTO } from '../dto/report-generate.dto';
 import { IReportAccountsUsecase } from '../interfaces/usecases/report-accounts.usecase.interfac';
 import { IReportFSUsecase } from '../interfaces/usecases/report-fs.usecase.interfa';
 import { ReportResultDTO } from '../dto/report-result.dto';
 import { IReportGeneratorUsecase } from '../interfaces/usecases/report-generator.usecase.interface';
+import { transformEntityToDTO } from '@/core/config/utils/transformer.util';
 
 @Injectable()
 export class ReportUsecase implements IReportUsecase {
@@ -64,20 +64,23 @@ export class ReportUsecase implements IReportUsecase {
       try {
         const reportResultDTO = await reportPromise;
         reportUpdate.status = reportResultDTO.status;
-        reportUpdate.elapsedTimeMs = reportResultDTO.elapsedTimeMs;
+        reportUpdate.elapsedTimeMs = Math.round(reportResultDTO.elapsedTimeMs);
       } catch (e) {
         reportUpdate.statusReason = (e as Error)?.message;
       }
       await this.reportRepository.update(reportEntity.id, reportUpdate);
     });
 
-    const reportDTO = plainToInstance(ReportDTO, reportEntity);
+    const reportDTO = transformEntityToDTO(ReportDTO, reportEntity);
     return reportDTO;
   }
 
   async getReportStatusByReportId(id: string): Promise<ReportDTO> {
     const reportEntity = await this.reportRepository.findOne(id);
-    const reportDTO = plainToInstance(ReportDTO, reportEntity);
+    if (!reportEntity) {
+      throw new Error(`Report not found with id ${id}`);
+    }
+    const reportDTO = transformEntityToDTO(ReportDTO, reportEntity);
     return reportDTO;
   }
 }

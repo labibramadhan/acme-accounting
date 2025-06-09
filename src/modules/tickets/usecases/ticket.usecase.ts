@@ -4,12 +4,13 @@ import { CreateTicketDTO } from '../dto/create-ticket.dto';
 import { TicketDTO } from '../dto/ticket.dto';
 import { TicketType } from '@/db/enums/ticket.enum';
 import { ITicketRepository } from '../interfaces/repositories/ticket-repository.interface';
-import { plainToInstance } from 'class-transformer';
 import { IUserRepository } from '@/modules/user/interfaces/repositories/user-repository.interface';
 import { ITicketStrikeOffUsecase } from '../interfaces/usecases/ticket-strikeoff.usecase';
 import { ITicketManagementReportUsecase } from '../interfaces/usecases/ticket-managementreport.usecase';
 import { ITicketRegAddressChangeUsecase } from '../interfaces/usecases/ticket-regaddresschange.usecase';
 import { ITicketPersistenceUsecase } from '../interfaces/usecases/ticket-persistence-usecase.interface';
+import { transformEntitiesToDTO } from '@/core/config/utils/transformer.util';
+import { TicketEntity } from '@/db/entities/ticket.entity';
 
 @Injectable()
 export class TicketUsecase implements ITicketUsecase {
@@ -33,9 +34,9 @@ export class TicketUsecase implements ITicketUsecase {
     };
   }
 
-  async findAll() {
-    const tickets = await this.ticketRepository.findAll();
-    const ticketDTOs = plainToInstance(TicketDTO, tickets);
+  async findAll(): Promise<TicketDTO[]> {
+    const tickets: TicketEntity[] = await this.ticketRepository.findAll();
+    const ticketDTOs = transformEntitiesToDTO(TicketDTO, tickets);
     return ticketDTOs;
   }
 

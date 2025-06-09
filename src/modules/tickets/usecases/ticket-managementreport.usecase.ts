@@ -4,12 +4,12 @@ import { ITicketManagementReportUsecase } from '../interfaces/usecases/ticket-ma
 import { RoleEnum } from '@/db/enums/role.enum';
 import { TicketCategory, TicketStatus } from '@/db/enums/ticket.enum';
 import { ConflictException, Inject } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
 import { TicketEntity } from '@/db/entities/ticket.entity';
 import { IUserRepository } from '@/modules/user/interfaces/repositories/user-repository.interface';
 import { ITicketRepository } from '../interfaces/repositories/ticket-repository.interface';
 import { Sequelize } from 'sequelize-typescript';
 import { v4 } from 'uuid';
+import { transformEntityToDTO } from '@/core/config/utils/transformer.util';
 
 export class TicketManagementReportUsecase
   implements ITicketManagementReportUsecase
@@ -39,7 +39,7 @@ export class TicketManagementReportUsecase
 
     const assignee = assignees[0];
 
-    const ticketEntity: TicketEntity = plainToInstance(TicketEntity, {
+    const ticketEntity: TicketEntity = transformEntityToDTO(TicketEntity, {
       id: v4(),
       ...ticket,
       category,
@@ -53,7 +53,7 @@ export class TicketManagementReportUsecase
         trx,
         ticketEntity,
       );
-      const result = plainToInstance(TicketDTO, insertedTicket);
+      const result = transformEntityToDTO(TicketDTO, insertedTicket);
       await trx.commit();
       return result;
     } catch (error) {

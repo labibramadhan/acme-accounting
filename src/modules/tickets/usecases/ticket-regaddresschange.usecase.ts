@@ -2,7 +2,6 @@ import { TicketEntity } from '@/db/entities/ticket.entity';
 import { RoleEnum } from '@/db/enums/role.enum';
 import { TicketCategory, TicketStatus } from '@/db/enums/ticket.enum';
 import { ConflictException, Inject } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
 import { CreateTicketDTO } from '../dto/create-ticket.dto';
 import { TicketDTO } from '../dto/ticket.dto';
 import { ITicketRegAddressChangeUsecase } from '../interfaces/usecases/ticket-regaddresschange.usecase';
@@ -10,6 +9,10 @@ import { IUserRepository } from '@/modules/user/interfaces/repositories/user-rep
 import { ITicketRepository } from '../interfaces/repositories/ticket-repository.interface';
 import { Sequelize } from 'sequelize-typescript';
 import { v4 } from 'uuid';
+import {
+  transformEntityToDTO,
+  transformPlainToEntity,
+} from '@/core/config/utils/transformer.util';
 
 export class TicketRegAddressChangeUsecase
   implements ITicketRegAddressChangeUsecase
@@ -57,7 +60,7 @@ export class TicketRegAddressChangeUsecase
 
     const assignee = assignees[0];
 
-    const ticketEntity: TicketEntity = plainToInstance(TicketEntity, {
+    const ticketEntity: TicketEntity = transformPlainToEntity(TicketEntity, {
       id: v4(),
       ...ticket,
       category,
@@ -71,7 +74,7 @@ export class TicketRegAddressChangeUsecase
         trx,
         ticketEntity,
       );
-      const result = plainToInstance(TicketDTO, insertedTicket);
+      const result = transformEntityToDTO(TicketDTO, insertedTicket);
       await trx.commit();
       return result;
     } catch (error) {
