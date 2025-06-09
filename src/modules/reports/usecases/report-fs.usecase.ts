@@ -6,6 +6,7 @@ import { Injectable } from '@nestjs/common';
 import { ReportStatusEnum } from '@/db/enums/report.enum';
 import path from 'path';
 import fs from 'fs';
+import readline from 'readline';
 
 @Injectable()
 export class ReportFSUsecase implements IReportGeneratorUsecase {
@@ -54,26 +55,34 @@ export class ReportFSUsecase implements IReportGeneratorUsecase {
         }
       }
     }
-    await fs.promises.readdir(tmpDir).then((files) => {
-      files.forEach((file) => {
-        if (file.endsWith('.csv') && file !== 'fs.csv') {
-          const lines = fs
-            .readFileSync(path.join(tmpDir, file), 'utf-8')
-            .trim()
-            .split('\n');
+    const promises: Promise<void>[] = [];
+    const files = await fs.promises.readdir(tmpDir);
+    for (const file of files) {
+      if (file.endsWith('.csv') && file !== 'fs.csv') {
+        promises.push(
+          (async () => {
+            const filePath = path.join(tmpDir, file);
+            const fileStream = fs.createReadStream(filePath);
 
-          for (const line of lines) {
-            const [, account, , debit, credit] = line.split(',');
+            const rl = readline.createInterface({
+              input: fileStream,
+              crlfDelay: Infinity,
+            });
 
-            if (Object.prototype.hasOwnProperty.call(balances, account)) {
-              balances[account] +=
-                parseFloat(String(debit || 0)) -
-                parseFloat(String(credit || 0));
+            for await (const line of rl) {
+              const [, account, , debit, credit] = line.split(',');
+
+              if (Object.prototype.hasOwnProperty.call(balances, account)) {
+                balances[account] +=
+                  parseFloat(String(debit || 0)) -
+                  parseFloat(String(credit || 0));
+              }
             }
-          }
-        }
-      });
-    });
+          })(),
+        );
+      }
+    }
+    await Promise.all(promises);
 
     const output: string[] = [];
     output.push('Basic Financial Statement');
