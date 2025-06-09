@@ -63,6 +63,8 @@ export class ReportUsecase implements IReportUsecase {
       const reportUpdate = new ReportEntity();
       try {
         const reportResultDTO = await reportPromise;
+        reportUpdate.fileUrl = reportResultDTO.fileUrl;
+        reportUpdate.filePath = reportResultDTO.filePath;
         reportUpdate.status = reportResultDTO.status;
         reportUpdate.elapsedTimeMs = Math.round(reportResultDTO.elapsedTimeMs);
       } catch (e) {
