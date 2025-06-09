@@ -5,19 +5,19 @@ module.exports = {
     await queryInterface.createTable('tickets', {
       id: {
         allowNull: false,
-        autoIncrement: true,
         primaryKey: true,
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.UUIDV4,
       },
       type: {
         type: Sequelize.STRING,
       },
       assigneeId: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
         references: { model: 'users', key: 'id' },
       },
       companyId: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
         references: { model: 'companies', key: 'id' },
       },
       category: {
