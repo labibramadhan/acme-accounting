@@ -1,11 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
-import { User } from '../../db/models/User';
+import { UserModel } from '../../../db/models/user.model';
 
 @Controller('api/v1/healthcheck')
 export class HealthcheckController {
   @Get()
   async ping() {
-    await User.findAll();
+    await UserModel.findAll();
     return {
       OK: true,
     };
