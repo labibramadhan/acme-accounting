@@ -1,21 +1,27 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { SequelizeModuleOptions } from '@nestjs/sequelize/dist/interfaces/sequelize-options.interface';
-import { Company } from '../db/models/Company';
-import { Ticket } from '../db/models/Ticket';
-import { User } from '../db/models/User';
-import dbConfig from '../db/config/config.json';
-
-const devConfig = dbConfig.development as SequelizeModuleOptions;
-const testConfig = dbConfig.test as SequelizeModuleOptions;
-
-const config = process.env.NODE_ENV === 'test' ? testConfig : devConfig;
+import { CompanyModel } from '@/db/models/company.model';
+import { TicketModel } from '@/db/models/ticket.model';
+import { UserModel } from '@/db/models/user.model';
+import { ReportModel } from '@/db/models/report.model';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    SequelizeModule.forRoot({
-      ...config,
-      models: [Company, User, Ticket],
+    SequelizeModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        return {
+          dialect: configService.getOrThrow('database.dialect'),
+          host: configService.getOrThrow('database.host'),
+          port: configService.getOrThrow('database.port'),
+          username: configService.getOrThrow('database.username'),
+          password: configService.getOrThrow('database.password'),
+          database: configService.getOrThrow('database.database'),
+          models: [CompanyModel, UserModel, TicketModel, ReportModel],
+        };
+      },
     }),
   ],
 })
